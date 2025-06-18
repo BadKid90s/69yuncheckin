@@ -1,9 +1,9 @@
 name: Python CI 2
 
 on:
-  # 每天0点1分触发（UTC时间）
+  # 每天0点触发（UTC时间），但实际执行时间是随机的
   schedule:
-    - cron: '1 0 * * *'
+    - cron: '0 0 * * *'
 
   # 允许手动触发工作流
   workflow_dispatch:
@@ -14,7 +14,23 @@ on:
       - main  # 只在主分支提交时触发
 
 jobs:
+  set-random-time:
+    runs-on: ubuntu-latest
+    outputs:
+      random-hour: ${{ steps.set-time.outputs.random-hour }}
+      random-minute: ${{ steps.set-time.outputs.random-minute }}
+    steps:
+      - id: set-time
+        run: |
+          # 生成随机小时 (0-23) 和分钟 (0-59)
+          HOUR=$((RANDOM % 24))
+          MINUTE=$((RANDOM % 60))
+          echo "random-hour=$HOUR" >> $GITHUB_OUTPUT
+          echo "random-minute=$MINUTE" >> $GITHUB_OUTPUT
+          echo "下次执行时间: ${HOUR}:${MINUTE} UTC"
+
   build:
+    needs: set-random-time
     runs-on: ubuntu-latest
     env:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -25,6 +41,34 @@ jobs:
       PASS2: ${{ secrets.PASS2 }}            # 密码2
       # 可以继续扩展更多用户和密码
     steps:
+      - name: 等待随机时间
+        run: |
+          HOUR=${{ needs.set-random-time.outputs.random-hour }}
+          MINUTE=${{ needs.set-random-time.outputs.random-minute }}
+          
+          # 获取当前时间（UTC）
+          CURRENT_TIME=$(date -u +%s)
+          
+          # 计算目标时间的时间戳
+          TARGET_DATE=$(date -u +"%Y-%m-%d ${HOUR}:${MINUTE}:00")
+          TARGET_TIME=$(date -u -d "$TARGET_DATE" +%s)
+          
+          # 如果目标时间已过，则设置为明天
+          if [ "$TARGET_TIME" -le "$CURRENT_TIME" ]; then
+            TARGET_DATE=$(date -u -d "$TARGET_DATE +1 day" +"%Y-%m-%d ${HOUR}:${MINUTE}:00")
+            TARGET_TIME=$(date -u -d "$TARGET_DATE" +%s)
+          fi
+          
+          # 计算需要等待的秒数
+          WAIT_SECONDS=$((TARGET_TIME - CURRENT_TIME))
+          
+          echo "当前时间: $(date -u)"
+          echo "目标时间: $TARGET_DATE"
+          echo "等待时间: $WAIT_SECONDS 秒 ($(($WAIT_SECONDS / 3600)) 小时 $(($(($WAIT_SECONDS % 3600)) / 60)) 分钟)"
+          
+          # 等待指定的秒数
+          sleep $WAIT_SECONDS
+
       - name: Checkout code
         uses: actions/checkout@v2
 
