@@ -23,7 +23,7 @@ jobs:
       - id: set-time
         run: |
           # 生成随机小时 (0-23) 和分钟 (0-59)
-          HOUR=$((RANDOM % 24))
+          HOUR=$((RANDOM % 3 + 12))  # 12, 13, or 14
           MINUTE=$((RANDOM % 60))
           echo "random-hour=$HOUR" >> $GITHUB_OUTPUT
           echo "random-minute=$MINUTE" >> $GITHUB_OUTPUT
