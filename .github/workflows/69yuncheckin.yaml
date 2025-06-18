@@ -1,9 +1,9 @@
 name: Python CI 2
 
 on:
-  # 每天0点触发（UTC时间），但实际执行时间是随机的
+  # 每天12点触发（UTC时间），但实际执行时间是随机的
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 12 * * *'
 
   # 允许手动触发工作流
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - id: set-time
         run: |
-          # 生成随机小时 (0-23) 和分钟 (0-59)
+          # 生成随机小时 (12-14) 和分钟 (0-59)
           HOUR=$((RANDOM % 3 + 12))  # 12, 13, or 14
           MINUTE=$((RANDOM % 60))
           echo "random-hour=$HOUR" >> $GITHUB_OUTPUT
